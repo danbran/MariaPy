@@ -1,9 +1,10 @@
+from pandas.io import sql
 import pymysql
 import pandas as pd
 
 import getpass
 
-from typing import Tuple, Optional, Union
+from typing import List, Dict, Tuple, Optional, Union
 
 
 class DBSub(object):        
@@ -64,7 +65,11 @@ class DBInterface():
         return {'host': self.host, 'user': self.user, 'password': self.password, 'database': self.database, 'port': self.port}
 
 
-    
+
+#%% query
+
+
+
     def dataframe(self, table: str = None, sql_cmd: str = None) -> pd.DataFrame:
         """ """
         if table:
@@ -110,6 +115,61 @@ class DBInterface():
         if self.verbose: print("is_row:", res_bool) #, res, sql_cmd)
         return res_bool
 
+
+
+    def _information_schema(self, db_table: str) -> Dict:
+        """Connect to db and get schema of db_table
+        
+        Parameter
+        ---------
+        db_table: str
+
+        Returns
+        -------
+        res: dict(fieldname:datatype)
+        """          
+        sql_cmd = f"""
+        SELECT *
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_NAME = '{db_table}' 
+        """
+        res = self.query(sql_cmd)
+        return res
+        
+
+
+    def schema(self, db_table: str) -> Dict:
+        """get schema of db table"""
+        res = self._information_schema(db_table)
+        return ({r[3]:r[7] for r in res})
+    
+
+
+    def column_names(self, db_table: str) -> List[str]:
+        """get column names of db_table"""
+        res = self._information_schema(db_table)
+        return([r[3] for r in res])
+
+
+    
+    def index(self, db_table: str, db_index_name: str = 'id') -> List:
+        """Connect to db and get index of db_table"""
+        sql_cmd = f"SELECT {db_index_name} FROM {db_table}"
+        res = self.query(sql_cmd)
+        return([r[0] for r in res])
+
+
+
+#%% write
+
+
+    def write(self, sql_cmd):
+        """
+        """
+        with DBSub(**self.db_settings, verbose=self.verbose) as cur:
+            cur.execute(sql_cmd)
+            res = cur.fetchall()
+        return res
 
 
     def dataframe2db(self, df: pd.DataFrame, db_table: str, if_exist: str = 'fail'):

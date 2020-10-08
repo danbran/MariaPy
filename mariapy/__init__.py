@@ -1,4 +1,9 @@
 import os
 
-os.environ["ALPHAVANTAGE_API_KEY"] = "P0A1HVOD28I3FEVZ"
+try:
+    from .password import ALPHAVANTAGE_API_KEY 
+    os.environ["ALPHAVANTAGE_API_KEY"] = ALPHAVANTAGE_API_KEY
+except ImportError as error:
+    print("no alpha vantage key available", error)
+    pass
 

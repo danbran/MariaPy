@@ -1,1 +1,3 @@
 mariapy/password.py
+bak/
+*/__pycache__/
