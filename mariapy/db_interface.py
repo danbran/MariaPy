@@ -160,10 +160,10 @@ class DBInterface():
 
 
 
-#%% write
+#%% execute and write
 
 
-    def write(self, sql_cmd):
+    def execute(self, sql_cmd):
         """
         """
         with DBSub(**self.db_settings, verbose=self.verbose) as cur:
