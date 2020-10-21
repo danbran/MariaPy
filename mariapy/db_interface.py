@@ -196,7 +196,9 @@ class DBInterface():
         * names of DataFrame columns and MariaDB columns have to agree with each other
         * DataFrame.index is not transferred
 
-        TODO: update: where condition for strings-id
+        TODO
+        ----
+        * update: where condition for strings-id. problem if primary key is a string. exception necessary
         """
         def transfer_nan_values_to_sql_null(s: pd.Series) -> str:
             """
