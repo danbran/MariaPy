@@ -1,6 +1,7 @@
 # from pandas.io import sql
 import pymysql
 import pandas as pd
+import ibis
 
 import getpass
 
@@ -43,11 +44,11 @@ class DBInterface():
     """
     TODO
     ----
-    * dataframe2db: update: where condition for strings-id. problem if primary key is a string. exception necessary
-
+    
     SOLVED
     ------
     * implement generic_write function
+    * dataframe2db: update: where condition for strings-id. problem if primary key is a string. exception necessary
     """
     def __init__(self, 
                  user: Optional[str] = None,
@@ -69,6 +70,19 @@ class DBInterface():
     @property
     def db_settings(self):
         return {'host': self.host, 'user': self.user, 'password': self.password, 'database': self.database, 'port': self.port}
+
+
+
+    @property
+    def ibiscon(self):
+        """
+        Example
+        -------
+            ```
+            con = DBInterface().ibiscon
+            ```
+        """
+        return ibis.mysql.connect(**self.db_settings)
 
 
 
@@ -186,11 +200,12 @@ class DBInterface():
         df : pd.DataFrame
         db_table : str
             name of target table in MariaDB
-        if_exists : {'fail', 'replace'}, default 'fail'
+        if_exists : {'fail', 'replace', 'update'}, default 'fail'
             How to behave if a row in a table already exists.
             * fail: Raise a ValueError.
             * replace: if the row with primery keys exists the row gets fully replaced
             (Missing values get replaced by default NULL)
+            * update: update existing rows identified using primary key. Primary keys will not get updated.
 
         Returns
         -------
@@ -239,7 +254,7 @@ class DBInterface():
                             for col in df.drop(list_primary_keys, axis=1).columns:
                                 sql_cmd += f" {col} = '{df.loc[idx, col]}'," if df.loc[idx, col] != "NULL" else f" {col} = {df.loc[idx, col]},"
                             sql_cmd = sql_cmd[:-1] + " WHERE "
-                            sql_cmd += " AND ".join(f"{str(pk)} = {str(df[pk].iloc[num])}" for pk in list_primary_keys)
+                            sql_cmd += " AND ".join(f"{str(pk)} = '{str(df[pk].iloc[num])}'" for pk in list_primary_keys)
                             sql_cmd += ";"
                             print('{}:{}: update entry'.format(db_table, df.loc[idx, df.columns[0]]))
                         else:
@@ -250,7 +265,7 @@ class DBInterface():
                 except Exception as error:
                     raise KeyError(error)
 
-                if self.verbose: print(f'DBInterface: sql_cmd to execute:\n{sql_cmd}')
+                if self.verbose: print(f'dataframe2db: sql_cmd to execute:\n{sql_cmd}')
                 cur.execute(sql_cmd)
             res = cur.fetchall()
         return res
