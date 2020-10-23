@@ -1,4 +1,4 @@
-from pandas.io import sql
+# from pandas.io import sql
 import pymysql
 import pandas as pd
 
@@ -41,7 +41,13 @@ class DBSub(object):
 
 class DBInterface():
     """
-    TODO: implement generic_write function
+    TODO
+    ----
+    * dataframe2db: update: where condition for strings-id. problem if primary key is a string. exception necessary
+
+    SOLVED
+    ------
+    * implement generic_write function
     """
     def __init__(self, 
                  user: Optional[str] = None,
@@ -195,10 +201,6 @@ class DBInterface():
         * Target table and headers have to exist in MariaDB
         * names of DataFrame columns and MariaDB columns have to agree with each other
         * DataFrame.index is not transferred
-
-        TODO
-        ----
-        * update: where condition for strings-id. problem if primary key is a string. exception necessary
         """
         def transfer_nan_values_to_sql_null(s: pd.Series) -> str:
             """
