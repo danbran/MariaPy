@@ -119,11 +119,41 @@ class DBInterface():
 
 
 
+    def table_primary_keys(self, db_table: str) -> List[str]:
+        """returns list of column names that are primary keys"""
+        # sq = f"""
+        # SELECT kcu.ORDINAL_POSITION, kcu.COLUMN_NAME AS primary_key
+        # FROM information_schema.table_constraints tc
+        # join information_schema.key_column_usage kcu
+        # on tc.constraint_schema = kcu.constraint_schema
+        #     and tc.constraint_name = kcu.constraint_name
+        #     and tc.table_name = kcu.table_name
+        # WHERE tc.CONSTRAINT_SCHEMA = {self.database}
+        # AND tc.TABLE_NAME = {db_table}
+        # AND tc.CONSTRAINT_NAME = 'PRIMARY'
+        # ORDER BY kcu.ORDINAL_POSITION
+        # """
+        sq = f"SHOW KEYS FROM {db_table} WHERE Key_name = 'PRIMARY'"
+        return self.dataframe(sql_cmd=sq).Column_name.values
+
+
+
+    def is_row_pk(self, db_table: str, list_pk: List, list_pk_values: List) -> bool:
+        """Checks if row with given primary keys exists. Returns a Boolean."""
+        sq = f"SELECT * FROM {db_table} WHERE "
+        sq += " AND ".join(f"{str(pk)} = '{pk_value}'" for pk, pk_value in zip(list_pk, list_pk_values))
+        sq += ";"
+        res = self.query(sq)
+        res_bool = True if res else False
+        return res_bool
+
+
+
     def is_row(self, table: str, id: Union[str, int], id_header: Optional[str] = None) -> bool:
         """ Checks if data is available for specific id in a table.
         Returns a Boolean.
 
-        TODO: better print using git dataframe(sql_cmd="SHOW INDEX from stocks_fundamental"))
+        DONE: better print using git dataframe(sql_cmd="SHOW INDEX from stocks_fundamental"))
         """
         id_header = 'id' if id_header is None else id_header
         if type(id) == str:
@@ -238,10 +268,13 @@ class DBInterface():
             print("fillna-method ist not valid for category-dtypes", error)
 
         with DBSub(**self.db_settings, verbose=self.verbose) as cur:
-            list_primary_keys = self.dataframe(sql_cmd=f"SHOW KEYS FROM {db_table} WHERE Key_name = 'PRIMARY'").Column_name.values
+            # list_primary_keys = self.dataframe(sql_cmd=f"SHOW KEYS FROM {db_table} WHERE Key_name = 'PRIMARY'").Column_name.values
+            list_primary_keys = self.table_primary_keys(db_table=db_table)
             for num, idx in enumerate(df.index):
                 try:
-                    if self.is_row(table=db_table, id=df.loc[idx, df.columns[0]], id_header=df.columns[0]) == True:
+                    list_pk_values = df[list_primary_keys].iloc[num]
+                    res_bool = self.is_row_pk(db_table=db_table, list_pk=list_primary_keys, list_pk_values=list_pk_values)
+                    if res_bool == True:
                         if if_exist == 'fail':
                             print(f"Duplicate entry {df.columns[0]}='{df.loc[idx, df.columns[0]]}' for key 'PRIMARY'. No DB update")
                             continue
