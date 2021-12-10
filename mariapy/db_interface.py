@@ -1,7 +1,6 @@
 # from pandas.io import sql
 import pymysql
 import pandas as pd
-import ibis
 
 import getpass
 
@@ -71,18 +70,6 @@ class DBInterface():
     def db_settings(self):
         return {'host': self.host, 'user': self.user, 'password': self.password, 'database': self.database, 'port': self.port}
 
-
-
-    @property
-    def ibiscon(self):
-        """
-        Example
-        -------
-            ```
-            con = DBInterface().ibiscon
-            ```
-        """
-        return ibis.mysql.connect(**self.db_settings)
 
 
 
